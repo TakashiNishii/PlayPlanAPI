@@ -18,46 +18,63 @@ export class YoutubeService {
   async searchVideos(query: string[]): Promise<ItemInfo[]> {
     const apiKey = this.config.get<string>('API_KEY');
 
-    const { data } = await firstValueFrom(
-      this.http.get<YoutubeResponseDto>(
-        'https://www.googleapis.com/youtube/v3/search',
-        {
-          params: {
-            part: 'snippet',
-            maxResults: 10,
-            q: query.join('|'),
-            key: apiKey,
-            type: 'video',
-          },
-        },
-      ),
-    );
-    // Pego os ids dos videos retornados e faço uma nova requisição para pegar a duração dos videos
-    const videoIds = data.items.map((item) => item.id.videoId).join(',');
-    const { data: videoData } = await firstValueFrom(
-      this.http.get<YoutubeVideoDetailsResponseDto>(
-        'https://www.googleapis.com/youtube/v3/videos',
-        {
-          params: {
-            part: 'contentDetails',
-            id: videoIds,
-            key: apiKey,
-          },
-        },
-      ),
-    );
-    // Mapeio a duração dos vídeos para cada item
-    const videoDurations = videoData.items.reduce<Record<string, string>>(
-      (acc, item) => {
-        acc[item.id] = this.parseDuration(item.contentDetails.duration);
-        return acc;
-      },
-      {},
-    );
+    const maxResults = 200;
+    const pageSize = 50;
+    const searchItems: ItemInfo[] = [];
+    let nextPageToken: string | undefined;
 
-    return data.items.map((item) => ({
+    do {
+      const { data } = await firstValueFrom(
+        this.http.get<YoutubeResponseDto>(
+          'https://www.googleapis.com/youtube/v3/search',
+          {
+            params: {
+              part: 'snippet',
+              maxResults: pageSize,
+              q: query.join('|'),
+              key: apiKey,
+              type: 'video',
+              pageToken: nextPageToken,
+            },
+          },
+        ),
+      );
+
+      searchItems.push(...data.items);
+      nextPageToken = data.nextPageToken;
+    } while (searchItems.length < maxResults && nextPageToken);
+
+    const items = searchItems.slice(0, maxResults);
+    const videoIds = items.map((item) => item.id.videoId);
+    const videoDurations: Record<string, string> = {};
+
+    // O endpoint videos aceita no máximo 50 IDs por chamada.
+    for (let index = 0; index < videoIds.length; index += pageSize) {
+      const idsBatch = videoIds.slice(index, index + pageSize).join(',');
+
+      const { data: videoData } = await firstValueFrom(
+        this.http.get<YoutubeVideoDetailsResponseDto>(
+          'https://www.googleapis.com/youtube/v3/videos',
+          {
+            params: {
+              part: 'contentDetails',
+              id: idsBatch,
+              key: apiKey,
+            },
+          },
+        ),
+      );
+
+      videoData.items.forEach((item) => {
+        videoDurations[item.id] = this.parseDuration(
+          item.contentDetails.duration,
+        );
+      });
+    }
+
+    return items.map((item) => ({
       ...item,
-      duration: videoDurations[item.id.videoId],
+      duration: videoDurations[item.id.videoId] ?? '00:00',
     }));
   }
 
