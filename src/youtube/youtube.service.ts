@@ -24,7 +24,7 @@ export class YoutubeService {
         {
           params: {
             part: 'snippet',
-            maxResults: 25,
+            maxResults: 10,
             q: query.join('|'),
             key: apiKey,
             type: 'video',
