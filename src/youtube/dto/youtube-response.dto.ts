@@ -11,7 +11,19 @@ export interface YoutubeResponseDto {
   items: [search: ItemInfo];
 }
 
+export interface YoutubeVideoDetailsResponseDto {
+  items: YoutubeVideoDetailsItemDto[];
+}
+
+export interface YoutubeVideoDetailsItemDto {
+  id: string;
+  contentDetails: {
+    duration: string;
+  };
+}
+
 export interface ItemInfo {
+  contentDetails: any;
   kind: string;
   etag: string;
   id: {
