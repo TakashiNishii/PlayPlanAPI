@@ -4,6 +4,9 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableCors({
+    origin: process.env.ENABLED_ORIGINS?.split(',') ?? 'http://localhost:3000',
+  });
 
   const config = new DocumentBuilder()
     .setTitle('PlayPlan API')

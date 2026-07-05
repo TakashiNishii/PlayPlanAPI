@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-import { YoutubeResponseDto } from './dto/youtube-response.dto';
+import { ItemInfo, YoutubeResponseDto } from './dto/youtube-response.dto';
 
 @Injectable()
 export class YoutubeService {
@@ -11,7 +11,7 @@ export class YoutubeService {
     private readonly config: ConfigService,
   ) {}
 
-  async searchVideos(query: string): Promise<YoutubeResponseDto> {
+  async searchVideos(query: string[]): Promise<ItemInfo[]> {
     const apiKey = this.config.get<string>('API_KEY');
 
     const { data } = await firstValueFrom(
@@ -21,13 +21,13 @@ export class YoutubeService {
           params: {
             part: 'snippet',
             maxResults: 25,
-            q: query,
+            q: query.join('|'),
             key: apiKey,
             type: 'video',
           },
         },
       ),
     );
-    return data;
+    return data.items;
   }
 }
