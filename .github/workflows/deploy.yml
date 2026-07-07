@@ -26,22 +26,23 @@ jobs:
 
       - name: Configure Docker
         run: |
-          gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev
+          gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev
 
       - name: Build Docker image
         run: |
           docker build \
-            -t ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ github.sha }} .
+            -t ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }} .
 
       - name: Push Docker image
         run: |
           docker push \
-            ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ github.sha }}
+            ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy ${{ vars.SERVICE_NAME }} \
-            --image=${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ github.sha }} \
-            --region=${{ vars.GCP_REGION }} \
+          gcloud run deploy ${{ secrets.SERVICE_NAME }} \
+            --image=${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.ARTIFACT_REGISTRY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }} \
+            --region=${{ secrets.GCP_REGION }} \
             --platform=managed \
+            --set-env-vars="^##^API_KEY=${{ secrets.YOUTUBE_API_KEY }}##ENABLED_ORIGINS=${{ secrets.ENABLED_ORIGINS }}" \
             --allow-unauthenticated
