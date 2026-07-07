@@ -28,6 +28,41 @@ jobs:
         run: |
           gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev
 
+      - name: Validate required secrets
+        env:
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          GCP_REGION: ${{ secrets.GCP_REGION }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          ARTIFACT_REGISTRY: ${{ secrets.ARTIFACT_REGISTRY }}
+          IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
+          SERVICE_NAME: ${{ secrets.SERVICE_NAME }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          ENABLED_ORIGINS: ${{ secrets.ENABLED_ORIGINS }}
+        run: |
+          missing=0
+          required_vars=(
+            GCP_SERVICE_ACCOUNT_KEY
+            GCP_REGION
+            GCP_PROJECT_ID
+            ARTIFACT_REGISTRY
+            IMAGE_NAME
+            SERVICE_NAME
+            YOUTUBE_API_KEY
+            ENABLED_ORIGINS
+          )
+
+          for var_name in "${required_vars[@]}"; do
+            if [[ -z "${!var_name}" ]]; then
+              echo "::error::Missing required secret: ${var_name}"
+              missing=1
+            fi
+          done
+
+          if [[ "$missing" -eq 1 ]]; then
+            echo "One or more required secrets are missing. Check repository secrets in GitHub Actions settings."
+            exit 1
+          fi
+
       - name: Build Docker image
         run: |
           docker build \
